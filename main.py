@@ -33,10 +33,41 @@ class Graph(object):
 
 
         #add the neighbors
-        self.vertices[start_point].add_neighbor(Edge(start_point,end_point,weight,is_jetstream))
+
+        edge = Edge(start_point,end_point,weight,is_jetstream)
+        self.vertices[start_point].add_neighbor(edge)
 
 
     def get_shortest_path(self, start_point, end_point):
+
+        ##before we can perform the search we need to fill in the gaps
+        ##between the jetstream nodes where there is no connection
+
+        nodes = self.vertices.keys()
+        #revese the list so we start as the last node for comparison
+        nodes.sort()
+        nodes.reverse()
+
+        ##loop through the array
+        node_length = len(nodes)
+        for i in range(node_length ):
+            #check all but first node
+            if(i < node_length -1):
+                my_node = nodes[i]
+                next_lowest_jetstream_node = nodes[i+1]
+          
+            if(my_node not in self.vertices[next_lowest_jetstream_node].neighbors):
+                weight = (my_node - next_lowest_jetstream_node) * self.default_energy
+                print "linking {} to {} with a weight of {}".format(next_lowest_jetstream_node, my_node, weight)
+                self.add_edge(next_lowest_jetstream_node, my_node, weight)
+
+        if(nodes[node_length-1] != 0):
+            weight = (nodes[node_length-1]) * self.default_energy
+            print "linking {} to {} with a weight of {}".format(0, nodes[node_length-1], weight)
+            self.add_edge(0, nodes[node_length-1], weight)
+
+
+        
         print "getting shortest path"
 
 
@@ -50,6 +81,8 @@ class Vertex(object):
     def add_neighbor(self, edge):
         self.neighbors[edge.end_node] = edge
 
+    def __str__(self):
+        return "{}:{}".format(self.id, self.neighbors)
 #class represents the connection between two nodes on the graph
 class Edge(object):
 
@@ -58,6 +91,9 @@ class Edge(object):
         self.end_node = end_node
         self.weight = weight
         self.is_jetstream_edge = is_jetstream_edge
+
+    def __str__(self):
+        return "start_node : {}, end_node : {}, weight : {}".format(start_node,end_node,weight)
 
 def main():
 
@@ -119,10 +155,9 @@ def process_graph(input_file):
             energy = int(edge_data[2])
             graph.add_edge(start_point,end_point,energy)
    
+        ##get the shortest path
 
-        
-       
-        print graph.last_node
+        graph.get_shortest_path(0,graph.last_node)
 
         
     except IOError as err:
