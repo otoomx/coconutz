@@ -6,6 +6,12 @@ Overview
 --------
 The program is designed to read in a data that represents a set of jetstream paths and calculates the most efficient route, based on each jetstreams weight
 
+#### Assumptions
+* The Swallow will start at mile marker 0 when he starts his coconut deliver journey
+* The destination is always the greatest mile marker in the data file
+* Not all jetstream paths are connected and the program will need to create routes between jetstreams that are not connected
+
+
 Running the program
 -------------------
 

@@ -56,7 +56,6 @@ class Graph(object):
 
         ##before we can perform the search we need to fill in the gaps
         ##between the jetstream nodes where there is no connection
-        print "computing shortest path"
 
         #fill in gaps between jetstream nodes by traveling 
         #without jetstream
@@ -99,7 +98,7 @@ class Graph(object):
     # Return the shortest path from the start to an endpoint
     # return: path array of tuples, total amount of energy
     def get_best_path(self, end_point):
-        print "return shortest path"
+        
         path = []
         current_node = end_point
 
@@ -190,7 +189,7 @@ def main():
         if len(sys.argv)==1:
             raise  getopt.GetoptError("No Options supplied")
             print_usage()
-            
+
         opts, args = getopt.getopt(sys.argv[1:], "hi:")
 
         if( len(opts)==0    ):
