@@ -5,6 +5,8 @@
 
 import sys
 import getopt
+import heapq
+import pprint
 
 
 __author__      = "Mike O'Toole otoolem@gmail.com"
@@ -47,6 +49,9 @@ class Graph(object):
 
     # Compute shortest path from start node all the way to end node
     # params start_point, end_point
+    # uses dijkistras algorythm 
+    # http://en.wikipedia.org/wiki/Dijkstra's_algorithm#Using_a_priority_queue
+    # inspired by: http://code.activestate.com/recipes/119466-dijkstras-algorithm-for-shortest-paths/
     def compute_efficient_paths(self, start_point, end_point):
 
         ##before we can perform the search we need to fill in the gaps
@@ -57,13 +62,67 @@ class Graph(object):
         #without jetstream
         self.connect_jetstreams()
 
+        #set up a queue
+        queue = []
 
+
+        ##itilize vertices distance from the start
+        for vertex in self.vertices:
+            if vertex == start_point:
+                # first node should be zero distance
+                self.vertices[vertex].distance = 0
+            else: 
+                # set the rest to an unreachable distance
+                self.vertices[vertex].distance = sys.maxsize
+
+            #push em on the queue
+            heapq.heappush(queue, [self.vertices[vertex].distance, vertex])
+
+        while queue:
+            lowest_vertex = heapq.heappop(queue)[1]
+            self.vertices[lowest_vertex].visited = True
+
+            for neighbor in self.vertices[lowest_vertex].neighbors:
+                if(self.vertices[neighbor].visited <> True):
+                    new_distance = self.vertices[lowest_vertex].distance + self.vertices[lowest_vertex].neighbors[neighbor].weight
+
+                    if new_distance < self.vertices[neighbor].distance:
+                        self.vertices[neighbor].distance = new_distance
+                        self.vertices[neighbor].previous = lowest_vertex
+                        #update queue priority  
+                        for v in queue:
+                            if v[1] == neighbor:
+                                v[0] = new_distance
+                                break
+                        heapq.heapify(queue)
 
     # Return the shortest path from the start to an endpoint
     # return: path array of tuples, total amount of energy
     def get_best_path(self, end_point):
         print "return shortest path"
+        path = []
+        current_node = end_point
 
+        #connec the dots between nodes to create an array of best paths
+        while(self.vertices[current_node].previous != None):
+            previous_node = self.vertices[current_node].previous
+            #get edge so we can inspect information
+            edge =  self.vertices[previous_node].neighbors[current_node]
+
+            #only include jetstream elements in the path
+            if edge.is_jetstream_edge:
+                path.insert(0, (previous_node , current_node))
+
+            current_node = previous_node
+
+        #return the path along with the total energy
+        total_distance = self.vertices[end_point].distance
+        return path, total_distance
+
+
+    # Fills in the gaps between jetstream paths
+    # which allows the bird to travel on edges that are not on the jetstream
+    # in order to connect to jetstream edges
     def connect_jetstreams(self):
         nodes = self.vertices.keys()
   
@@ -92,14 +151,16 @@ class Graph(object):
 
     def __str__(self):
         return str(self.vertices)
+
 #class represents the node or vertex on the graph
 class Vertex(object):
 
     def __init__(self,id):
         self.id = id
         self.neighbors = {}
-        self.distance = sys.maxsize
-        self.previous = None
+        self.distance = sys.maxsize #default distance, unreachable
+        self.previous = None #default undefined
+        self.visited = False
 
     def add_neighbor(self, edge):
         self.neighbors[edge.end_node] = edge
@@ -121,16 +182,20 @@ class Edge(object):
     def __str__(self):
         return "edge:{} {} weight:{} on the jetstream: {}".format(self.start_node,self.end_node,self.weight, self.is_jetstream_edge)
 
+# main program method
 def main():
-
 
     try:
 
         if len(sys.argv)==1:
             raise  getopt.GetoptError("No Options supplied")
             print_usage()
+            
         opts, args = getopt.getopt(sys.argv[1:], "hi:")
 
+        if( len(opts)==0    ):
+            raise  getopt.GetoptError("No Options supplied")
+            print_usage()
         for o, a in opts:
          
             if o == "-v":
@@ -153,6 +218,7 @@ def main():
         print_usage()
         sys.exit(2)
 
+# processes the input file and loads into a graph
 def process_graph(input_file):
 
     try:
@@ -185,14 +251,14 @@ def process_graph(input_file):
         graph.compute_efficient_paths(0,graph.last_node)
 
         #retrieve the path and distance to the last node
-        graph.get_best_path(graph.last_node)
-    
-      
-
+        jetstream_path, energy_used = graph.get_best_path(graph.last_node)
         
+        print "Total Energy consumed on most efficient route: {}".format(energy_used)
 
-       
-
+        print "Most Efficient route: "
+        
+        #pretty print the path info
+        pprint.pprint(jetstream_path)
         
     except IOError as err:
         print str(err)
