@@ -2,12 +2,15 @@
 # main.py
 # Coconut Delivery System 
 # solution to https://github.com/AdamFinch1/coconut_delivery
-import re
+
 import sys
 import getopt
 
+
 __author__      = "Mike O'Toole otoolem@gmail.com"
 
+#   Graph class represents the JetStream as a weighted directed graph
+#   
 class Graph(object):
 
     def __init__(self,default_energy):
@@ -16,13 +19,17 @@ class Graph(object):
         self.default_energy = default_energy
         self.last_node = 0
 
+    # add a vertex to the graph
+    # params vertex (mile marker)
     def add_vertex(self,v):
         self.vertices[v] = Vertex(v)
         if v > self.last_node  :
             self.last_node=v
             
 
-
+    # add a weighted edge
+    # params start point, end point, weight (energy), 
+    # is_jetstream (is the edge on the jetstream, default is False)
     def add_edge(self,start_point,end_point,weight,is_jetstream=False):
         #initilize the vertices if they are already there
         if start_point not in self.vertices:
@@ -38,51 +45,70 @@ class Graph(object):
         self.vertices[start_point].add_neighbor(edge)
 
 
-    def get_shortest_path(self, start_point, end_point):
+    # Compute shortest path from start node all the way to end node
+    # params start_point, end_point
+    def compute_efficient_paths(self, start_point, end_point):
 
         ##before we can perform the search we need to fill in the gaps
         ##between the jetstream nodes where there is no connection
+        print "computing shortest path"
 
+        #fill in gaps between jetstream nodes by traveling 
+        #without jetstream
+        self.connect_jetstreams()
+
+
+
+    # Return the shortest path from the start to an endpoint
+    # return: path array of tuples, total amount of energy
+    def get_best_path(self, end_point):
+        print "return shortest path"
+
+    def connect_jetstreams(self):
         nodes = self.vertices.keys()
-        #revese the list so we start as the last node for comparison
-        nodes.sort()
-        nodes.reverse()
-
-        ##loop through the array
+  
         node_length = len(nodes)
-        for i in range(node_length ):
-            #check all but first node
-            if(i < node_length -1):
-                my_node = nodes[i]
-                next_lowest_jetstream_node = nodes[i+1]
-          
-            if(my_node not in self.vertices[next_lowest_jetstream_node].neighbors):
-                weight = (my_node - next_lowest_jetstream_node) * self.default_energy
-                print "linking {} to {} with a weight of {}".format(next_lowest_jetstream_node, my_node, weight)
-                self.add_edge(next_lowest_jetstream_node, my_node, weight)
 
-        if(nodes[node_length-1] != 0):
-            weight = (nodes[node_length-1]) * self.default_energy
-            print "linking {} to {} with a weight of {}".format(0, nodes[node_length-1], weight)
-            self.add_edge(0, nodes[node_length-1], weight)
+        if(node_length==0):
+            return
 
+        #sort the node keys
+        nodes.sort()
 
+        ##if the first node is not 0 connect zero to the first node
+
+        if(nodes[0]!=0):
+             self.add_edge(0,nodes[0], nodes[0]*self.default_energy)
+
+        for i in range(node_length-1):
         
-        print "getting shortest path"
+            current_node = nodes[i]
+            next_node = nodes[i+1]
+
+            if(next_node not in self.vertices[current_node].neighbors):
+                weight = (next_node - current_node) * self.default_energy
+                self.add_edge(current_node, next_node, weight)
 
 
+    def __str__(self):
+        return str(self.vertices)
 #class represents the node or vertex on the graph
 class Vertex(object):
 
     def __init__(self,id):
         self.id = id
         self.neighbors = {}
+        self.distance = sys.maxsize
+        self.previous = None
 
     def add_neighbor(self, edge):
         self.neighbors[edge.end_node] = edge
 
+    def get_neighbors(self):
+        return self.neighbors
+
     def __str__(self):
-        return "{}:{}".format(self.id, self.neighbors)
+        return str(self.id)
 #class represents the connection between two nodes on the graph
 class Edge(object):
 
@@ -93,7 +119,7 @@ class Edge(object):
         self.is_jetstream_edge = is_jetstream_edge
 
     def __str__(self):
-        return "start_node : {}, end_node : {}, weight : {}".format(start_node,end_node,weight)
+        return "edge:{} {} weight:{} on the jetstream: {}".format(self.start_node,self.end_node,self.weight, self.is_jetstream_edge)
 
 def main():
 
@@ -153,11 +179,19 @@ def process_graph(input_file):
             start_point = int(edge_data[0])
             end_point = int(edge_data[1])
             energy = int(edge_data[2])
-            graph.add_edge(start_point,end_point,energy)
+            graph.add_edge(start_point,end_point,energy, True)
    
         ##get the shortest path
+        graph.compute_efficient_paths(0,graph.last_node)
 
-        graph.get_shortest_path(0,graph.last_node)
+        #retrieve the path and distance to the last node
+        graph.get_best_path(graph.last_node)
+    
+      
+
+        
+
+       
 
         
     except IOError as err:
